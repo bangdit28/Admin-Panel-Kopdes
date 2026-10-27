@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOPDES Master Admin Dashboard</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#C62828',
+                        brandDark: '#8E0000',
+                        accent: '#00A3E0'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- LOGIN OVERLAY PIN ADMIN -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <div class="w-16 h-16 bg-brand/20 text-brand rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold border border-brand/30">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-1">KOPDES Admin Portal</h2>
+            <p class="text-xs text-slate-400 mb-6">Masukkan PIN Master untuk mengelola sistem</p>
+            
+            <input type="password" id="inputPin" placeholder="Default PIN: admin123" class="w-full text-center tracking-widest text-lg font-bold bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand mb-4">
+            
+            <button onclick="handleLogin()" class="w-full bg-brand hover:bg-brandDark text-white font-semibold py-3 rounded-xl transition duration-200">
+                Buka Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 lg:px-8 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand/30">
+                K
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-white leading-tight">KOPDES Control Center</h1>
+                <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Firebase Connected
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="fetchAllData()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-2">
+                <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+                <span class="hidden sm:inline">Refresh Data</span>
+            </button>
+            <button onclick="handleLogout()" class="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg border border-red-500/30 transition">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row">
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-full lg:w-64 bg-slate-900/50 border-b lg:border-b-0 lg:border-r border-slate-800 p-4 space-y-1">
+            <button onclick="switchTab('tab-overview')" id="nav-overview" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <i class="fa-solid fa-chart-pie w-5"></i> Ringkasan
+            </button>
+            <button onclick="switchTab('tab-ranges')" id="nav-ranges" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-earth-africa w-5"></i> Range & Tarif OTP
+                </div>
+                <span id="badgeActiveRanges" class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">0 Aktif</span>
+            </button>
+            <button onclick="switchTab('tab-withdrawals')" id="nav-withdrawals" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-money-bill-transfer w-5"></i> Tarik Dana (WD)
+                </div>
+                <span id="badgePendingWd" class="hidden bg-amber-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button onclick="switchTab('tab-users')" id="nav-users" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <i class="fa-solid fa-users w-5"></i> Anggota & Saldo
+            </button>
+            <button onclick="switchTab('tab-numbers')" id="nav-numbers" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <i class="fa-solid fa-sim-card w-5"></i> Log OTP & Nomor
+            </button>
+            <button onclick="switchTab('tab-settings')" id="nav-settings" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <i class="fa-solid fa-sliders w-5"></i> Master Config APK
+            </button>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">
+
+            <!-- 1. TAB: RINGKASAN -->
+            <section id="tab-overview" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold text-slate-400">Total Anggota</span>
+                            <span class="p-2 bg-blue-500/10 text-blue-400 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white" id="statTotalUsers">0</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Terdaftar di database</p>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold text-slate-400">Total Saldo Anggota</span>
+                            <span class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm"><i class="fa-solid fa-wallet"></i></span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-emerald-400" id="statTotalBalance">Rp 0</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Belum ditarik</p>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold text-slate-400">Antrean Penarikan</span>
+                            <span class="p-2 bg-amber-500/10 text-amber-400 rounded-lg text-sm"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-amber-400" id="statPendingWd">0 Request</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Menunggu persetujuan</p>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold text-slate-400">Total Akun / OTP Sukses</span>
+                            <span class="p-2 bg-purple-500/10 text-purple-400 rounded-lg text-sm"><i class="fa-solid fa-check-double"></i></span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-purple-400" id="statTotalUsedNumbers">0</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Hasil panen tim</p>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6">
+                    <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-cat text-amber-400"></i> Kontrol Range & Komisi Aktif
+                    </h3>
+                    <div class="text-sm text-slate-300 space-y-2 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <p>🌍 <b>Range Baru Lamix</b>: Saat Anda menambahkan range di Lamix (misal: Tanzania), sistem otomatis memasukkannya sebagai <span class="text-amber-400 font-bold">Draft (Disembunyikan)</span>.</p>
+                        <p>💰 <b>Penetapan Tarif</b>: Silakan masuk ke tab <b>Range & Tarif OTP</b> untuk mengatur bayaran per OTP dan menekan tombol <b>Tampilkan di APK</b>.</p>
+                        <p>📱 <b>Kopdes Browser</b> hanya akan memuat negara yang statusnya <span class="text-emerald-400 font-bold">AKTIF</span> di dashboard ini.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. TAB: RANGE & TARIF OTP (FITUR BARU) -->
+            <section id="tab-ranges" class="space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Kelola Range Negara & Tarif OTP</h2>
+                        <p class="text-xs text-slate-400">Sinkronkan range dari Lamix, atur komisi anggota per OTP, dan tentukan apakah muncul di APK atau disembunyikan.</p>
+                    </div>
+                    <button onclick="syncRangesFromLamix()" class="px-4 py-2.5 bg-accent hover:bg-sky-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-sky-900/30 transition flex items-center gap-2 self-start sm:self-auto">
+                        <i class="fa-solid fa-rotate" id="syncLamixIcon"></i>
+                        <span>Sinkronkan Range Lamix</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/70 text-slate-400 uppercase border-b border-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-5 py-3.5">Negara / Range</th>
+                                    <th class="px-5 py-3.5">Prefix</th>
+                                    <th class="px-5 py-3.5">Stok Lamix</th>
+                                    <th class="px-5 py-3.5">Komisi Anggota (Rp/OTP)</th>
+                                    <th class="px-5 py-3.5">Status di Browser APK</th>
+                                    <th class="px-5 py-3.5 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableRangesBody" class="divide-y divide-slate-700/60">
+                                <tr>
+                                    <td colspan="6" class="px-5 py-8 text-center text-slate-400">Klik "Sinkronkan Range Lamix" untuk memuat daftar range...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. TAB: WITHDRAWALS -->
+            <section id="tab-withdrawals" class="space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Daftar Permintaan Penarikan Uang</h2>
+                        <p class="text-xs text-slate-400">Verifikasi dan transfer dana ke e-wallet / rekening anggota</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/70 text-slate-400 uppercase border-b border-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-5 py-3.5">Tanggal</th>
+                                    <th class="px-5 py-3.5">Anggota</th>
+                                    <th class="px-5 py-3.5">Nominal</th>
+                                    <th class="px-5 py-3.5">Tujuan Transfer</th>
+                                    <th class="px-5 py-3.5">Status</th>
+                                    <th class="px-5 py-3.5 text-center">Aksi Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableWithdrawalsBody" class="divide-y divide-slate-700/60">
+                                <tr>
+                                    <td colspan="6" class="px-5 py-8 text-center text-slate-400">Memuat data permintaan penarikan...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. TAB: ANGGOTA & SALDO -->
+            <section id="tab-users" class="space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Kelola Anggota & Saldo</h2>
+                        <p class="text-xs text-slate-400">Edit saldo manual, reset pass, atau pantau performa anggota</p>
+                    </div>
+                    <input type="text" id="searchUser" onkeyup="filterUsers()" placeholder="🔍 Cari nama/email/hp..." class="bg-slate-800 border border-slate-700 text-xs px-4 py-2.5 rounded-xl text-white focus:outline-none focus:border-accent w-full sm:w-64">
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/70 text-slate-400 uppercase border-b border-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-5 py-3.5">Anggota</th>
+                                    <th class="px-5 py-3.5">Kontak</th>
+                                    <th class="px-5 py-3.5">Saldo Aktif</th>
+                                    <th class="px-5 py-3.5">Kata Sandi</th>
+                                    <th class="px-5 py-3.5">Tgl Daftar</th>
+                                    <th class="px-5 py-3.5 text-center">Aksi Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableUsersBody" class="divide-y divide-slate-700/60">
+                                <tr>
+                                    <td colspan="6" class="px-5 py-8 text-center text-slate-400">Memuat anggota...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. TAB: LOG NOMOR & OTP -->
+            <section id="tab-numbers" class="space-y-6 hidden">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Riwayat Nomor & OTP Terpakai</h2>
+                    <p class="text-xs text-slate-400">Daftar nomor yang berhasil mendapat SMS dari API Lamix</p>
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/70 text-slate-400 uppercase border-b border-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-5 py-3.5">Waktu</th>
+                                    <th class="px-5 py-3.5">Nomor Telepon</th>
+                                    <th class="px-5 py-3.5">Kode OTP</th>
+                                    <th class="px-5 py-3.5">Digunakan Oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableNumbersBody" class="divide-y divide-slate-700/60">
+                                <tr>
+                                    <td colspan="4" class="px-5 py-8 text-center text-slate-400">Memuat riwayat nomor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. TAB: MASTER CONFIG APK -->
+            <section id="tab-settings" class="space-y-6 hidden">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Master Configuration APK</h2>
+                    <p class="text-xs text-slate-400">Ubah variabel APK secara langsung tanpa harus build ulang aplikasi</p>
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 max-w-2xl space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Default Tarif Komisi Umum (Rp/OTP)</label>
+                        <input type="number" id="cfgReward" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand">
+                        <p class="text-[11px] text-slate-400 mt-1">Tarif fallback jika negara belum memiliki settingan khusus di tab Range.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Minimal Penarikan Saldo (Min WD - Rp)</label>
+                        <input type="number" id="cfgMinWd" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Global Password Facebook Otomatis</label>
+                        <input type="text" id="cfgGlobalPass" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Bearer Token API Lamix Global</label>
+                        <input type="text" id="cfgLamixToken" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand font-mono text-xs">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Pesan Pengumuman / Broadcast ke APK</label>
+                        <textarea id="cfgBroadcast" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand"></textarea>
+                    </div>
+
+                    <button onclick="saveGlobalConfig()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/30">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Pengaturan APK
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL EDIT SALDO ANGGOTA -->
+    <div id="modalEditBalance" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl space-y-4">
+            <h3 class="text-base font-bold text-white">Sesuaikan Saldo Anggota</h3>
+            <p id="modalUserName" class="text-xs text-accent font-semibold">User: -</p>
+
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Saldo Sekarang</label>
+                <input type="text" id="modalCurrentBalance" readonly class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-300 font-bold">
+            </div>
+
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Ubah Saldo Menjadi (Rp)</label>
+                <input type="number" id="modalNewBalance" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-brand">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeModalBalance()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition">Batal</button>
+                <button onclick="submitUpdateBalance()" class="flex-1 bg-brand hover:bg-brandDark text-white py-2.5 rounded-xl text-xs font-bold transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-800 border border-slate-700 px-4 py-3 rounded-xl shadow-2xl text-xs text-white flex items-center gap-2 transform translate-y-20 opacity-0 transition duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMsg">Berhasil!</span>
+    </div>
+
+    <script>
+        const FIREBASE_DB = "https://kopdes-browser-default-rtdb.asia-southeast1.firebasedatabase.app";
+        let MASTER_PIN = "admin123";
+
+        let allUsersData = {};
+        let allWdData = {};
+        let allNumbersData = {};
+        let allRangesConfig = {};
+        let lamixRawRanges = [];
+        let selectedUserKey = "";
+
+        // AUTH & PIN CHECK
+        function handleLogin() {
+            const input = document.getElementById('inputPin').value;
+            if (input === MASTER_PIN) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                sessionStorage.setItem('kopdes_admin_auth', '1');
+                fetchAllData();
+            } else {
+                showToast("PIN Salah!", true);
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('kopdes_admin_auth');
+            location.reload();
+        }
+
+        window.onload = () => {
+            if (sessionStorage.getItem('kopdes_admin_auth') === '1') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                fetchAllData();
+            }
+        };
+
+        // TAB SWITCHER
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand', 'text-white');
+                btn.classList.add('text-slate-300');
+            });
+
+            const activeBtn = document.getElementById(tabId.replace('tab-', 'nav-'));
+            if (activeBtn) {
+                activeBtn.classList.add('bg-brand', 'text-white');
+                activeBtn.classList.remove('text-slate-300');
+            }
+        }
+
+        // FETCH ALL DATA FROM FIREBASE
+        async function fetchAllData() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            refreshIcon.classList.add('fa-spin');
+
+            try {
+                // 1. Fetch Config
+                const resCfg = await fetch(`${FIREBASE_DB}/app_settings.json`);
+                const cfg = await resCfg.json() || {};
+                populateConfig(cfg);
+
+                // 2. Fetch Users
+                const resUsers = await fetch(`${FIREBASE_DB}/users.json`);
+                allUsersData = await resUsers.json() || {};
+                renderUsersTable();
+
+                // 3. Fetch Withdrawals
+                const resWd = await fetch(`${FIREBASE_DB}/withdrawals.json`);
+                allWdData = await resWd.json() || {};
+                renderWithdrawalsTable();
+
+                // 4. Fetch Numbers Log
+                const resNums = await fetch(`${FIREBASE_DB}/used_numbers.json`);
+                allNumbersData = await resNums.json() || {};
+                renderNumbersTable();
+
+                // 5. Fetch Ranges Config from Firebase
+                const resRanges = await fetch(`${FIREBASE_DB}/ranges_config.json`);
+                allRangesConfig = await resRanges.json() || {};
+                
+                // Auto sync ranges table
+                await syncRangesFromLamix(false);
+
+                updateOverviewStats();
+                showToast("Data berhasil diperbarui!");
+            } catch (err) {
+                showToast("Gagal memuat database: " + err.message, true);
+            } finally {
+                refreshIcon.classList.remove('fa-spin');
+            }
+        }
+
+        // =========================================================
+        // LOGIKA BARU: SINKRONISASI LAMIX & ATUR RANGE NEGARA
+        // =========================================================
+        async function syncRangesFromLamix(manualClick = true) {
+            const syncIcon = document.getElementById('syncLamixIcon');
+            if (manualClick) syncIcon.classList.add('fa-spin');
+
+            const token = document.getElementById('cfgLamixToken')?.value || "goJXfVY0j3wwRacYiHwPvHZr3X1pqjEroc_Rc7JNuPk";
+            const targetUrl = "https://panel.lamix.org/api/v1/ranges";
+
+            try {
+                let data = null;
+                // Coba direct fetch, jika terhalang CORS browser coba via proxy
+                try {
+                    const res = await fetch(targetUrl, {
+                        headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" }
+                    });
+                    if (res.ok) data = await res.json();
+                } catch (e1) {
+                    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+                    const resProxy = await fetch(proxyUrl, {
+                        headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" }
+                    });
+                    if (resProxy.ok) data = await resProxy.json();
+                }
+
+                if (data && data.ranges) {
+                    lamixRawRanges = data.ranges;
+                    renderRangesTable();
+                    if (manualClick) showToast("Berhasil mengambil data range dari Lamix!");
+                } else {
+                    renderRangesTable();
+                }
+            } catch (err) {
+                renderRangesTable();
+                if (manualClick) showToast("Koneksi ke API Lamix gagal: " + err.message, true);
+            } finally {
+                if (manualClick) syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        function renderRangesTable() {
+            const tbody = document.getElementById('tableRangesBody');
+            tbody.innerHTML = "";
+
+            if (!lamixRawRanges || lamixRawRanges.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada range termuat. Pastikan token Lamix benar dan klik tombol "Sinkronkan Range Lamix".</td></tr>`;
+                return;
+            }
+
+            let activeCount = 0;
+
+            lamixRawRanges.forEach(r => {
+                const rId = r.id;
+                // Cek konfigurasi yang tersimpan di Firebase
+                const savedConfig = allRangesConfig[rId] || {};
+
+                // Default jika negara baru di Lamix: DISEMBUNYIKAN (is_active = false)
+                const isActive = (savedConfig.is_active === true);
+                if (isActive) activeCount++;
+
+                const reward = (savedConfig.reward !== undefined) ? savedConfig.reward : 1500;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="px-5 py-3 font-semibold text-white">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">${getFlag(r.name, r.prefix)}</span>
+                            <div>
+                                <div>${r.name}</div>
+                                <div class="text-[10px] text-slate-400">ID: ${rId}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3 text-slate-300 font-mono font-bold">+${r.prefix}</td>
+                    <td class="px-5 py-3 text-slate-300 font-bold">${r.numbers || 0}</td>
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-slate-400">Rp</span>
+                            <input type="number" id="input_reward_${rId}" value="${reward}" class="w-24 bg-slate-900 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg text-emerald-400 font-bold focus:outline-none focus:border-accent">
+                        </div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <button onclick="toggleRangeActive('${rId}')" id="btn_status_${rId}" class="px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1.5 ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                            <i class="fa-solid ${isActive ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            <span>${isActive ? 'TAMPIL DI APK' : 'DISEMBUNYIKAN'}</span>
+                        </button>
+                    </td>
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="saveSingleRangeConfig('${rId}', '${r.name}', '${r.prefix}')" class="px-3 py-1.5 bg-brand hover:bg-brandDark text-white font-bold rounded-lg text-[11px] transition shadow">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('badgeActiveRanges').innerText = `${activeCount} Aktif`;
+        }
+
+        // TOGGLE SHOW / HIDE
+        function toggleRangeActive(rId) {
+            const current = allRangesConfig[rId] || {};
+            current.is_active = !current.is_active;
+            allRangesConfig[rId] = current;
+            renderRangesTable();
+        }
+
+        // SIMPAN CONFIG RANGE KE FIREBASE
+        async function saveSingleRangeConfig(rId, name, prefix) {
+            const rewardInput = document.getElementById(`input_reward_${rId}`);
+            const rewardVal = parseInt(rewardInput.value) || 1500;
+            const isCurrentlyActive = (allRangesConfig[rId]?.is_active === true);
+
+            const payload = {
+                id: rId,
+                name: name,
+                prefix: prefix,
+                reward: rewardVal,
+                is_active: isCurrentlyActive,
+                updated_at: new Date().toISOString()
+            };
+
+            try {
+                await fetch(`${FIREBASE_DB}/ranges_config/${rId}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+
+                allRangesConfig[rId] = payload;
+                showToast(`Pengaturan ${name} disimpan! Status: ${isCurrentlyActive ? 'TAMPIL' : 'DISEMBUNYIKAN'}`);
+            } catch (e) {
+                showToast("Gagal menyimpan ke Firebase: " + e.message, true);
+            }
+        }
+
+        function getFlag(name, prefix) {
+            const l = (name || '').toLowerCase();
+            if (l.includes("tanzania") || prefix == "255") return "🇹🇿";
+            if (l.includes("indonesia") || prefix == "62") return "🇮🇩";
+            if (l.includes("united states") || l.includes("usa") || prefix == "1") return "🇺🇸";
+            if (l.includes("united kingdom") || prefix == "44") return "🇬🇧";
+            if (l.includes("russia") || prefix == "7") return "🇷🇺";
+            if (l.includes("vietnam") || prefix == "84") return "🇻🇳";
+            if (l.includes("philippines") || prefix == "63") return "🇵🇭";
+            if (l.includes("malaysia") || prefix == "60") return "🇲🇾";
+            if (l.includes("thailand") || prefix == "66") return "🇹🇭";
+            if (l.includes("india") || prefix == "91") return "🇮🇳";
+            return "🌐";
+        }
+
+        // =========================================================
+        // TABEL LAINNYA: USERS, WITHDRAWALS, LOG NOMOR
+        // =========================================================
+        function renderUsersTable(filter = "") {
+            const tbody = document.getElementById('tableUsersBody');
+            tbody.innerHTML = "";
+
+            const keys = Object.keys(allUsersData);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada anggota terdaftar.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(k => {
+                const u = allUsersData[k];
+                const name = u.name || "Tanpa Nama";
+                const email = u.email || "-";
+                const phone = u.phone || "-";
+                const pass = u.password || "-";
+                const balance = u.balance || 0;
+                const regDate = u.created_at || "-";
+
+                if (filter && !name.toLowerCase().includes(filter) && !email.toLowerCase().includes(filter) && !phone.includes(filter)) {
+                    return;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="px-5 py-3 font-semibold text-white">
+                        <div>${name}</div>
+                        <div class="text-[10px] text-slate-400">${email}</div>
+                    </td>
+                    <td class="px-5 py-3 text-slate-300">${phone}</td>
+                    <td class="px-5 py-3 font-bold text-emerald-400">Rp ${Number(balance).toLocaleString('id-ID')}</td>
+                    <td class="px-5 py-3 text-slate-400 font-mono">${pass}</td>
+                    <td class="px-5 py-3 text-slate-400">${regDate}</td>
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="openModalBalance('${k}', '${name}', ${balance})" class="px-2.5 py-1 bg-accent/10 hover:bg-accent/20 text-accent font-semibold rounded-lg border border-accent/30 transition text-[11px]">
+                            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Saldo
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('searchUser').value.toLowerCase().trim();
+            renderUsersTable(q);
+        }
+
+        function renderWithdrawalsTable() {
+            const tbody = document.getElementById('tableWithdrawalsBody');
+            tbody.innerHTML = "";
+
+            const keys = Object.keys(allWdData);
+            let pendingCount = 0;
+
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada permintaan penarikan.</td></tr>`;
+                document.getElementById('badgePendingWd').classList.add('hidden');
+                return;
+            }
+
+            keys.reverse().forEach(wdId => {
+                const wd = allWdData[wdId];
+                if (wd.status === "PENDING") pendingCount++;
+
+                const statusBadge = wd.status === "PENDING"
+                    ? `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold">MENUNGGU</span>`
+                    : (wd.status === "APPROVED"
+                        ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold">DICAIRKAN</span>`
+                        : `<span class="bg-red-500/10 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px] font-bold">DITOLAK</span>`);
+
+                const actionBtns = wd.status === "PENDING"
+                    ? `
+                        <button onclick="processWd('${wdId}', true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-[10px] transition mr-1">
+                            <i class="fa-solid fa-check"></i> Bayar
+                        </button>
+                        <button onclick="processWd('${wdId}', false)" class="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded font-bold text-[10px] transition">
+                            <i class="fa-solid fa-xmark"></i> Tolak
+                        </button>
+                    `
+                    : `<span class="text-slate-500 text-[11px]">Selesai</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="px-5 py-3 text-slate-400">${wd.date || "-"}</td>
+                    <td class="px-5 py-3 font-semibold text-white">${wd.user_name || "Anggota"}</td>
+                    <td class="px-5 py-3 font-bold text-amber-400">Rp ${Number(wd.amount).toLocaleString('id-ID')}</td>
+                    <td class="px-5 py-3 text-slate-300 font-mono text-[11px]">${wd.target_account || "-"}</td>
+                    <td class="px-5 py-3">${statusBadge}</td>
+                    <td class="px-5 py-3 text-center">${actionBtns}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const badge = document.getElementById('badgePendingWd');
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            document.getElementById('statPendingWd').innerText = `${pendingCount} Request`;
+        }
+
+        function renderNumbersTable() {
+            const tbody = document.getElementById('tableNumbersBody');
+            tbody.innerHTML = "";
+
+            const nums = Object.keys(allNumbersData);
+            if (nums.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-slate-400">Belum ada nomor yang digunakan.</td></tr>`;
+                return;
+            }
+
+            nums.reverse().slice(0, 50).forEach(num => {
+                const item = allNumbersData[num];
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="px-5 py-3 text-slate-400">${item.date || "-"}</td>
+                    <td class="px-5 py-3 font-mono font-bold text-white">+${num}</td>
+                    <td class="px-5 py-3"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-extrabold">${item.otp || "-"}</span></td>
+                    <td class="px-5 py-3 text-slate-300">${item.used_by || "Anggota"}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateOverviewStats() {
+            const userKeys = Object.keys(allUsersData);
+            document.getElementById('statTotalUsers').innerText = userKeys.length;
+
+            let totalBal = 0;
+            userKeys.forEach(k => {
+                totalBal += (allUsersData[k].balance || 0);
+            });
+            document.getElementById('statTotalBalance').innerText = `Rp ${totalBal.toLocaleString('id-ID')}`;
+            document.getElementById('statTotalUsedNumbers').innerText = Object.keys(allNumbersData).length;
+        }
+
+        function openModalBalance(userKey, name, curBal) {
+            selectedUserKey = userKey;
+            document.getElementById('modalUserName').innerText = `Anggota: ${name}`;
+            document.getElementById('modalCurrentBalance').value = `Rp ${Number(curBal).toLocaleString('id-ID')}`;
+            document.getElementById('modalNewBalance').value = curBal;
+            document.getElementById('modalEditBalance').classList.remove('hidden');
+            document.getElementById('modalEditBalance').classList.add('flex');
+        }
+
+        function closeModalBalance() {
+            document.getElementById('modalEditBalance').classList.add('hidden');
+            document.getElementById('modalEditBalance').classList.remove('flex');
+        }
+
+        async function submitUpdateBalance() {
+            const newBal = parseInt(document.getElementById('modalNewBalance').value) || 0;
+            try {
+                await fetch(`${FIREBASE_DB}/users/${selectedUserKey}/balance.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(newBal)
+                });
+                closeModalBalance();
+                showToast("Saldo anggota berhasil diubah!");
+                fetchAllData();
+            } catch (e) {
+                showToast("Gagal update saldo: " + e.message, true);
+            }
+        }
+
+        async function processWd(wdId, isApproved) {
+            const wd = allWdData[wdId];
+            if (!wd) return;
+
+            const actionName = isApproved ? "MENCATAT PEMBAYARAN" : "MENOLAK & MENGEMBALIKAN SALDO";
+            if (!confirm(`Apakah Anda yakin ingin ${actionName} penarikan Rp ${Number(wd.amount).toLocaleString('id-ID')} untuk ${wd.user_name}?`)) return;
+
+            try {
+                const newStatus = isApproved ? "APPROVED" : "REJECTED";
+                await fetch(`${FIREBASE_DB}/withdrawals/${wdId}/status.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(newStatus)
+                });
+
+                if (!isApproved && wd.user_key) {
+                    const curUserBal = allUsersData[wd.user_key]?.balance || 0;
+                    const refundedBal = curUserBal + parseInt(wd.amount);
+                    await fetch(`${FIREBASE_DB}/users/${wd.user_key}/balance.json`, {
+                        method: 'PUT',
+                        body: JSON.stringify(refundedBal)
+                    });
+                }
+
+                showToast(isApproved ? "Penarikan Disetujui!" : "Penarikan Ditolak & Saldo Direfund!");
+                fetchAllData();
+            } catch (err) {
+                showToast("Gagal memproses: " + err.message, true);
+            }
+        }
+
+        function populateConfig(cfg) {
+            document.getElementById('cfgReward').value = cfg.reward_per_account || 1500;
+            document.getElementById('cfgMinWd').value = cfg.min_wd || 20000;
+            document.getElementById('cfgGlobalPass').value = cfg.global_password || "tasik321";
+            document.getElementById('cfgLamixToken').value = cfg.lamix_api_token || "goJXfVY0j3wwRacYiHwPvHZr3X1pqjEroc_Rc7JNuPk";
+            document.getElementById('cfgBroadcast').value = cfg.broadcast_message || "Selamat bertugas!";
+        }
+
+        async function saveGlobalConfig() {
+            const data = {
+                reward_per_account: parseInt(document.getElementById('cfgReward').value) || 1500,
+                min_wd: parseInt(document.getElementById('cfgMinWd').value) || 20000,
+                global_password: document.getElementById('cfgGlobalPass').value.trim(),
+                lamix_api_token: document.getElementById('cfgLamixToken').value.trim(),
+                broadcast_message: document.getElementById('cfgBroadcast').value.trim()
+            };
+
+            try {
+                await fetch(`${FIREBASE_DB}/app_settings.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                showToast("Pengaturan APK Global Berhasil Disimpan!");
+            } catch (e) {
+                showToast("Gagal menyimpan setting: " + e.message, true);
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (isError) {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-red-400 text-base";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
